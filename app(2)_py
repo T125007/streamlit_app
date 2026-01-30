@@ -1,0 +1,52 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+st.set_page_config(page_title='体力運動能力の推移', layout='wide')
+st.title('🏃 青年の年代別 体力運動能力の推移')
+
+file_map = {
+    "握力": "akuryoku.csv", "50m走": "50msou.csv", "ハンドボール投げ": "handball.csv",
+    "反復横とび": "hannpukuyokotobi.csv", "上体起こし": "jyoutaiokosi.csv",
+    "ソフトボール投げ": "softball.csv", "20mシャトルラン": "syatorurann.csv",
+    "立ち幅とび": "tatohabatobi.csv", "長座体前屈": "tyouzataizennkutu.csv", "持久走": "zikyuusou.csv"
+}
+
+with st.sidebar:
+    st.header('表示設定')
+    selected_event_name = st.selectbox('種目を選択してください', list(file_map.keys()))
+    target_gender = st.radio("性別", ["男子", "女子"])
+
+# --- ここから下をシンプルに ---
+
+# 1. データの読み込み（2行目をヘッダーにする）
+file_path = file_map[selected_event_name]
+df = pd.read_csv(file_path, header=1)
+
+# 2. 列名の整理（最初の2列を固定）
+df.columns.values[0] = "年齢"
+df.columns.values[1] = "性別"
+
+# 3. ユーザーが選んだ「性別」で絞り込み
+df_selection = df[df["性別"] == target_gender]
+
+# 4. 年齢を選んでもらう（例：13歳、19歳など）
+target_age = st.selectbox("年齢を選択してください", df_selection["年齢"].unique())
+
+# 5. グラフ用のデータ抽出（選んだ年齢の行を取り出し、年度と記録を対応させる）
+row = df_selection[df_selection["年齢"] == target_age]
+
+# グラフ化するために、年度の列と記録の値だけを抜き出す
+years = df.columns[2:]  # S40, 45... などの年度列
+values = row.iloc[0, 2:] # その年度に対応する数値データ
+
+# 6. 表示
+st.subheader(f"{target_age} {target_gender} の {selected_event_name} 推移")
+
+# Plotlyで描画（x軸に年度、y軸に記録）
+fig = px.line(x=years, y=values, markers=True, labels={'x':'年度', 'y':'記録'})
+st.plotly_chart(fig, use_container_width=True)
+
+# 表も見せる
+st.write("元データ（選択中の一行）")
+st.dataframe(row)
